@@ -9,82 +9,143 @@
     var lightbox = document.getElementById('lightbox');
     var lightboxImg = document.getElementById('lightboxImg');
 
-    var items = Array.prototype.map.call(cardView.querySelectorAll('.inventory-item'), function (li) {
-        return {
-            el: li,
-            id: li.dataset.id,
-            name: li.querySelector('h2').textContent,
-            model: li.querySelector('[data-model]').textContent,
-            price: parseInt(li.dataset.price, 10)
-        };
-    });
+    if (lightboxImg) {
+        lightboxImg.src = '';
+    }
+
+    function collectItems() {
+        if (!cardView) return [];
+        var nodes = cardView.querySelectorAll('.inventory-item');
+        var arr = [];
+        for (var i = 0; i < nodes.length; i++) {
+            var li = nodes[i];
+            arr.push({
+                el: li,
+                id: li.getAttribute('data-id') || '',
+                name: li.querySelector('h2') ? li.querySelector('h2').textContent : '',
+                model: li.querySelector('[data-model]') ? li.querySelector('[data-model]').textContent : '',
+                price: parseInt(li.getAttribute('data-price') || '0', 10)
+            });
+        }
+        return arr;
+    }
+
+    var items = collectItems();
 
     function fmt(n) {
         return '$' + n.toLocaleString('es-AR') + ' ARS';
     }
 
-    function updateLot() {
-        var total = items.reduce(function (s, it) { return s + it.price; }, 0);
-        document.getElementById('lotTotal').textContent = fmt(total);
-        document.getElementById('lotOld').textContent = fmt(total);
-        document.getElementById('lotDiscount').textContent = fmt(Math.round(total * 0.8));
-        document.getElementById('lotSub').textContent = items.length + ' equipos del lote';
+    function renderSummaryAndTable() {
+        var total = 0;
+        for (var i = 0; i < items.length; i++) {
+            total += items[i].price || 0;
+        }
+
+        var lotTotalEl = document.getElementById('lotTotal');
+        var lotOldEl = document.getElementById('lotOld');
+        var lotDiscountEl = document.getElementById('lotDiscount');
+        var lotSubEl = document.getElementById('lotSub');
+
+        if (lotTotalEl) lotTotalEl.textContent = fmt(total);
+        if (lotOldEl) lotOldEl.textContent = fmt(total);
+        if (lotDiscountEl) lotDiscountEl.textContent = fmt(Math.round(total * 0.8));
+        if (lotSubEl) lotSubEl.textContent = items.length + ' equipos del lote';
+
+        if (!tableBody) return;
+
+        tableBody.innerHTML = '';
+
+        var fragment = document.createDocumentFragment();
+        for (var j = 0; j < items.length; j++) {
+            var it = items[j];
+            var tr = document.createElement('tr');
+
+            var tdId = document.createElement('td');
+            tdId.className = 'idc';
+            tdId.textContent = it.id;
+
+            var tdName = document.createElement('td');
+            tdName.textContent = it.name;
+
+            var tdModel = document.createElement('td');
+            tdModel.textContent = it.model;
+
+            var tdPrice = document.createElement('td');
+            tdPrice.className = 'num';
+            tdPrice.textContent = fmt(it.price);
+
+            tr.appendChild(tdId);
+            tr.appendChild(tdName);
+            tr.appendChild(tdModel);
+            tr.appendChild(tdPrice);
+            fragment.appendChild(tr);
+        }
+
+        tableBody.appendChild(fragment);
     }
 
-    function renderTable() {
-        tableBody.innerHTML = items.map(function (it) {
-            return '<tr><td class="idc">' + it.id + '</td><td>' + it.name +
-                '</td><td>' + it.model + '</td><td class="num">' + fmt(it.price) + '</td></tr>';
-        }).join('');
+    function scheduleSummaryAndTable() {
+        if (typeof window.requestIdleCallback === 'function') {
+            window.requestIdleCallback(function () {
+                renderSummaryAndTable();
+            }, { timeout: 1000 });
+        } else {
+            setTimeout(function () {
+                renderSummaryAndTable();
+            }, 0);
+        }
     }
 
     function setView(view) {
         var isTable = view === 'table';
-        cardView.classList.toggle('hidden', isTable);
-        tableView.classList.toggle('visible', isTable);
-        btnCards.setAttribute('aria-pressed', String(!isTable));
-        btnTable.setAttribute('aria-pressed', String(isTable));
+        if (cardView) cardView.classList.toggle('hidden', isTable);
+        if (tableView) tableView.classList.toggle('visible', isTable);
+        if (btnCards) btnCards.setAttribute('aria-pressed', String(!isTable));
+        if (btnTable) btnTable.setAttribute('aria-pressed', String(isTable));
     }
 
-    function swapThumb(el) {
-        var media = el.closest('.item-media');
-        media.querySelector('.item-image').src = el.src;
-        media.querySelectorAll('.thumbs img').forEach(function (t) {
-            t.classList.remove('active');
-        });
-        el.classList.add('active');
-    }
-
-    function openLightbox(src, alt) {
-        lightboxImg.src = src;
-        lightboxImg.alt = alt || 'Vista ampliada';
+    function openLightboxFromImg(imgEl) {
+        if (!lightbox || !lightboxImg || !imgEl) return;
+        var fullSrc = imgEl.getAttribute('data-full-src') || imgEl.getAttribute('src') || '';
+        if (!fullSrc) return;
+        lightboxImg.src = fullSrc;
+        lightboxImg.alt = imgEl.getAttribute('alt') || 'Vista ampliada';
         lightbox.classList.add('open');
         lightbox.setAttribute('aria-hidden', 'false');
     }
 
     function closeLightbox() {
+        if (!lightbox || !lightboxImg) return;
         lightbox.classList.remove('open');
         lightbox.setAttribute('aria-hidden', 'true');
         lightboxImg.src = '';
     }
 
-    btnCards.addEventListener('click', function () { setView('cards'); });
-    btnTable.addEventListener('click', function () { setView('table'); });
+    if (btnCards) btnCards.addEventListener('click', function () { setView('cards'); });
+    if (btnTable) btnTable.addEventListener('click', function () { setView('table'); });
 
-    cardView.addEventListener('click', function (e) {
-        var t = e.target;
-        if (t.matches('.thumbs img')) {
-            swapThumb(t);
-        } else if (t.matches('.item-image')) {
-            openLightbox(t.src, t.alt);
-        }
-    });
+    if (cardView) {
+        cardView.addEventListener('click', function (e) {
+            var target = e.target;
+            if (target && target.classList && target.classList.contains('item-image')) {
+                openLightboxFromImg(target);
+            }
+        });
+    }
 
-    lightbox.addEventListener('click', closeLightbox);
+    if (lightbox) lightbox.addEventListener('click', closeLightbox);
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') closeLightbox();
     });
 
-    renderTable();
-    updateLot();
+    function init() {
+        scheduleSummaryAndTable();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
 })();
