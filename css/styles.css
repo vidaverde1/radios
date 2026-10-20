@@ -255,6 +255,51 @@ td.idc { font-family: 'Special Elite', monospace; color: var(--brown); }
     margin-top: 40px;
     border-top: 1px solid var(--line);
     padding-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.contact-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.contact-title {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.whatsapp-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #25D366;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    line-height: 1;
+}
+
+.whatsapp-link:hover,
+.whatsapp-link:focus {
+    transform: scale(1.1);
+    opacity: 0.9;
+    outline: 2px solid rgba(37, 211, 102, 0.4);
+    outline-offset: 2px;
+    border-radius: 50%;
+}
+
+.whatsapp-icon {
+    width: 32px;
+    height: 32px;
+    display: block;
 }
 
 /* Responsive */
